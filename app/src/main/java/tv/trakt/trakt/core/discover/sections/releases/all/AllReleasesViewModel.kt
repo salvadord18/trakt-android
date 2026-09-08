@@ -94,6 +94,7 @@ internal class AllReleasesViewModel(
     private val itemsState = MutableStateFlow(initialState.items)
     private val itemsLoadingState = MutableStateFlow(initialState.itemsLoading)
     private val loadingState = MutableStateFlow(initialState.loading)
+    private val loadingMoreState = MutableStateFlow(initialState.loadingMore)
     private val infoState = MutableStateFlow(initialState.info)
     private val errorState = MutableStateFlow(initialState.error)
 
@@ -203,14 +204,46 @@ internal class AllReleasesViewModel(
         }
     }
 
-    fun loadNextWeekData() {
-        selectedStartDayState.update { it.plusWeeks(1) }
+    fun loadWeek(day: LocalDate) {
+        selectedStartDayState.update { day.with(MONDAY) }
         loadData()
     }
 
-    fun loadPreviousWeekData() {
-        selectedStartDayState.update { it.minusWeeks(1) }
-        loadData()
+    // Appends the week following the last loaded one.
+    fun loadMoreData() {
+        if (loadingState.value.isLoading || loadingMoreState.value.isLoading) {
+            return
+        }
+        val currentItems = itemsState.value
+        if (currentItems.isNullOrEmpty()) {
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                loadingMoreState.update { Loading }
+
+                val nextWeekStart = currentItems.keys.max().plusDays(1)
+                val nextItems = getAllReleasesItemsUseCase.getReleaseItems(
+                    startDay = nextWeekStart,
+                    filters = filterState.value,
+                    type = typeState.value,
+                )
+
+                itemsState.update { items ->
+                    (items.orEmpty() + nextItems).toImmutableMap()
+                }
+            } catch (error: Exception) {
+                error.rethrowCancellation {
+                    infoState.update {
+                        DynamicStringResource(R.string.error_text_unexpected_error_short)
+                    }
+                    Timber.recordError(error)
+                }
+            } finally {
+                loadingMoreState.update { Done }
+            }
+        }
     }
 
     fun setFilter(filter: GlobalFilter) {
@@ -519,6 +552,7 @@ internal class AllReleasesViewModel(
         navigateMovie,
         navigateEpisode,
         loadingState,
+        loadingMoreState,
         infoState,
         errorState,
         typeState,
@@ -533,9 +567,10 @@ internal class AllReleasesViewModel(
             navigateMovie = states[6] as TraktId?,
             navigateEpisode = states[7] as Pair<TraktId, Episode>?,
             loading = states[8] as LoadingState,
-            info = states[9] as DynamicStringResource?,
-            error = states[10] as Exception?,
-            type = states[11] as ReleaseType,
+            loadingMore = states[9] as LoadingState,
+            info = states[10] as DynamicStringResource?,
+            error = states[11] as Exception?,
+            type = states[12] as ReleaseType,
         )
     }.stateIn(
         scope = viewModelScope,
