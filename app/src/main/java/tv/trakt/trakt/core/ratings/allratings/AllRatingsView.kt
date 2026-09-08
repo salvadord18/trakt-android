@@ -58,6 +58,7 @@ internal fun AllRatingsView(
     ratings: ExternalRating,
     modifier: Modifier = Modifier,
     malEnabled: Boolean = false,
+    seasonsEnabled: Boolean = true,
     onImdbClick: () -> Unit = {},
     onRottenClick: (link: String) -> Unit = {},
     onMalClick: (link: String) -> Unit = {},
@@ -70,6 +71,7 @@ internal fun AllRatingsView(
         seasons = state.seasons,
         seasonsLoading = state.loading.isLoading,
         malEnabled = malEnabled,
+        seasonsEnabled = seasonsEnabled,
         onImdbClick = onImdbClick,
         onRottenClick = onRottenClick,
         onMalClick = onMalClick,
@@ -85,6 +87,7 @@ private fun AllRatingsContent(
     modifier: Modifier = Modifier,
     seasonsLoading: Boolean,
     malEnabled: Boolean,
+    seasonsEnabled: Boolean,
     onImdbClick: () -> Unit = {},
     onRottenClick: (link: String) -> Unit = {},
     onMalClick: (link: String) -> Unit = {},
@@ -135,7 +138,7 @@ private fun AllRatingsContent(
         }
 
         val seasonRatings = seasons?.takeIf { it.size >= 2 }
-        if (seasonsLoading || seasonRatings != null) {
+        if (seasonsEnabled && (seasonsLoading || seasonRatings != null)) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
@@ -383,6 +386,7 @@ private fun Preview() {
         AllRatingsContent(
             malEnabled = true,
             seasonsLoading = false,
+            seasonsEnabled = true,
             seasons = listOf(85, 88, 84, 90, 96, 33, 44, 55)
                 .mapIndexed { index, percent ->
                     Season(

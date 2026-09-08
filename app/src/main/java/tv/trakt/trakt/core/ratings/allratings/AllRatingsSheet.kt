@@ -7,6 +7,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue.Expanded
 import androidx.compose.material3.SheetValue.Hidden
+import androidx.compose.material3.SheetValue.PartiallyExpanded
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -23,12 +24,13 @@ import kotlin.random.Random.Default.nextInt
 internal fun AllRatingsSheet(
     state: SheetState = rememberBottomSheetState(
         initialValue = Hidden,
-        enabledValues = setOf(Hidden, Expanded),
+        enabledValues = setOf(Hidden, PartiallyExpanded, Expanded),
     ),
     visible: Boolean,
     ratings: ExternalRating?,
     showId: TraktId? = null,
     malEnabled: Boolean = false,
+    seasonsEnabled: Boolean = true,
     onImdbClick: () -> Unit = {},
     onRottenClick: (link: String) -> Unit = {},
     onMalClick: (link: String) -> Unit = {},
@@ -50,6 +52,7 @@ internal fun AllRatingsSheet(
                 },
                 ratings = ratings,
                 malEnabled = malEnabled,
+                seasonsEnabled = seasonsEnabled,
                 onImdbClick = onImdbClick,
                 onRottenClick = onRottenClick,
                 onMalClick = onMalClick,
