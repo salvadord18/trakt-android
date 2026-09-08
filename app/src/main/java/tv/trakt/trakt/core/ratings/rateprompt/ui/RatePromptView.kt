@@ -95,10 +95,10 @@ internal fun RatePromptView(
                 shape = viewShape,
                 shadow = remember {
                     Shadow(
-                        radius = 4.dp,
+                        radius = 1.dp,
                         color = Color.Black,
-                        spread = 2.dp,
-                        alpha = 0.15F,
+                        spread = 0.75.dp,
+                        alpha = 0.1F,
                     )
                 },
             )
@@ -399,7 +399,7 @@ private fun Preview() {
             ) {
                 Box(
                     modifier = Modifier
-                        .shadow(4.dp, viewShape)
+                        .shadow(2.dp, viewShape)
                         .background(
                             color = TraktTheme.colors.navigationContainer,
                             shape = viewShape,

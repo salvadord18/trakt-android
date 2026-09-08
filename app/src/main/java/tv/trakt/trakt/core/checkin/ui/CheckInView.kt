@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow.Companion.Ellipsis
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,6 +82,14 @@ import kotlin.time.Duration.Companion.seconds
 
 private val viewShape = RoundedCornerShape(20.dp)
 private val viewPadding = 7.dp
+private val viewShadow = Shadow(
+    radius = 1.dp,
+    color = Color.Black,
+    spread = 0.75.dp,
+    alpha = 0.1F,
+    offset = DpOffset(x = 0.dp, y = 0.75.dp),
+)
+
 private val imageShape = RoundedCornerShape(14.dp)
 private val imageHeight = 76.dp
 private val imageShadow = 3.dp
@@ -142,15 +151,6 @@ internal fun CheckInView(
         if (secondsLeft <= 0L && startedAt != null && expiresAt != null) {
             onExpire()
         }
-    }
-
-    val viewShadow = remember {
-        Shadow(
-            radius = 4.dp,
-            color = Color.Black,
-            spread = 2.dp,
-            alpha = 0.15F,
-        )
     }
 
     Box(
@@ -615,7 +615,10 @@ private fun Preview() {
             ) {
                 Box(
                     modifier = Modifier
-                        .shadow(4.dp, viewShape)
+                        .dropShadow(
+                            shape = viewShape,
+                            shadow = viewShadow,
+                        )
                         .background(
                             color = TraktTheme.colors.navigationContainer,
                             shape = viewShape,
@@ -658,7 +661,10 @@ private fun Preview2() {
             ) {
                 Box(
                     modifier = Modifier
-                        .shadow(4.dp, collapsedViewShape)
+                        .dropShadow(
+                            shape = collapsedViewShape,
+                            shadow = viewShadow,
+                        )
                         .background(
                             color = TraktTheme.colors.navigationContainer,
                             shape = collapsedViewShape,

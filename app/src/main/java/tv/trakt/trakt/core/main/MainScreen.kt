@@ -444,12 +444,21 @@ private fun MainScreenContent(
                                             topStart = 24.dp,
                                             topEnd = 24.dp,
                                         ),
-                                        shadow = Shadow(
-                                            radius = 6.dp,
-                                            color = Color.Black,
-                                            spread = 2.dp,
-                                            alpha = 0.25F,
-                                        ),
+                                        shadow = if (TraktTheme.colors.isLight) {
+                                            Shadow(
+                                                radius = 4.dp,
+                                                color = Color.Black,
+                                                spread = 2.dp,
+                                                alpha = 0.1F,
+                                            )
+                                        } else {
+                                            Shadow(
+                                                radius = 6.dp,
+                                                color = Color.Black,
+                                                spread = 2.dp,
+                                                alpha = 0.2F,
+                                            )
+                                        },
                                     )
                                     .clip(
                                         RoundedCornerShape(
