@@ -26,6 +26,7 @@ import tv.trakt.trakt.core.home.sections.welcome.usecases.DismissWelcomeBannerUs
 import tv.trakt.trakt.core.main.MainViewModel
 import tv.trakt.trakt.core.main.usecases.CustomThemeUseCase
 import tv.trakt.trakt.core.main.usecases.DismissWelcomeUseCase
+import tv.trakt.trakt.core.main.usecases.InstallPromptUseCase
 import tv.trakt.trakt.core.main.usecases.LoadWhatsNewUseCase
 import tv.trakt.trakt.helpers.collapsing.CollapsingManager
 import tv.trakt.trakt.helpers.collapsing.DefaultCollapsingManager
@@ -91,6 +92,7 @@ internal val mainModule = module {
             dismissWelcomeUseCase = get(),
             loadWhatsNewUseCase = get(),
             inAppReviewUseCase = get(),
+            installPromptUseCase = get(),
             inAppUpdateManager = get(),
             errorsManager = get(),
             widgetsUpdates = get(),
@@ -100,6 +102,12 @@ internal val mainModule = module {
 
     factory {
         DismissWelcomeUseCase(
+            mainDataStore = get(named(MAIN_PREFERENCES)),
+        )
+    }
+
+    factory {
+        InstallPromptUseCase(
             mainDataStore = get(named(MAIN_PREFERENCES)),
         )
     }

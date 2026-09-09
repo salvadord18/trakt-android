@@ -123,6 +123,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.app.review)
     implementation(libs.androidx.app.update)
+    implementation(libs.androidx.cross.device.prompt)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.appwidget.preview)
     implementation(libs.androidx.glance.material3)

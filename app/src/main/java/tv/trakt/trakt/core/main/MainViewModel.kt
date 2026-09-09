@@ -52,6 +52,7 @@ import tv.trakt.trakt.core.checkin.data.CheckInManager
 import tv.trakt.trakt.core.checkin.data.updates.CheckInUpdates.Source
 import tv.trakt.trakt.core.checkin.model.CheckInState
 import tv.trakt.trakt.core.main.usecases.DismissWelcomeUseCase
+import tv.trakt.trakt.core.main.usecases.InstallPromptUseCase
 import tv.trakt.trakt.core.main.usecases.LoadWhatsNewUseCase
 import tv.trakt.trakt.core.notifications.data.work.ScheduleNotificationsWorker
 import tv.trakt.trakt.core.ratings.rateprompt.RatePromptManager
@@ -81,6 +82,7 @@ internal class MainViewModel(
     private val loadUserRatingsUseCase: LoadUserRatingsUseCase,
     private val dismissWelcomeUseCase: DismissWelcomeUseCase,
     private val inAppReviewUseCase: RequestAppReviewUseCase,
+    private val installPromptUseCase: InstallPromptUseCase,
     private val inAppUpdateManager: AppUpdateManager,
     private val errorsManager: GlobalErrorsManager,
     private val widgetsUpdates: WidgetsUpdater,
@@ -96,6 +98,7 @@ internal class MainViewModel(
     private val welcomeState = MutableStateFlow(initialState.welcome)
     private val whatsNewState = MutableStateFlow(initialState.whatsNew)
     private val reviewState = MutableStateFlow(initialState.review)
+    private val installPromptState = MutableStateFlow(initialState.installPrompt)
     private val paywallState = MutableStateFlow(initialState.paywall)
     private val updateState = MutableStateFlow(initialState.update)
     private val errorState = MutableStateFlow(initialState.error)
@@ -106,6 +109,7 @@ internal class MainViewModel(
         loadWelcome()
         loadWhatsNew()
         loadUser()
+        loadInstallPrompt()
 
         observeInAppUpdate()
         observeUser()
@@ -247,6 +251,14 @@ internal class MainViewModel(
                 error.rethrowCancellation {
                     Timber.recordError(error)
                 }
+            }
+        }
+    }
+
+    private fun loadInstallPrompt() {
+        viewModelScope.launch {
+            installPromptState.update {
+                installPromptUseCase.shouldPromptInstall()
             }
         }
     }
@@ -480,6 +492,7 @@ internal class MainViewModel(
         welcomeState,
         whatsNewState,
         reviewState,
+        installPromptState,
         paywallState,
         updateState,
         errorState,
@@ -493,9 +506,10 @@ internal class MainViewModel(
             welcome = state[5] as MainState.WelcomeState,
             whatsNew = state[6] as WhatsNew?,
             review = state[7] as Boolean?,
-            paywall = state[8] as Boolean?,
-            update = state[9] as AppUpdateResult?,
-            error = state[10] as Exception?,
+            installPrompt = state[8] as Boolean,
+            paywall = state[9] as Boolean?,
+            update = state[10] as AppUpdateResult?,
+            error = state[11] as Exception?,
         )
     }.stateIn(
         scope = viewModelScope,

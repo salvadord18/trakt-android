@@ -18,6 +18,7 @@ internal data class MainState(
     val welcome: WelcomeState = WelcomeState(),
     val whatsNew: WhatsNew? = null,
     val review: Boolean? = null,
+    val installPrompt: Boolean = false,
     val paywall: Boolean? = null,
     val update: AppUpdateResult? = null,
     val error: Exception? = null,

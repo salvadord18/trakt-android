@@ -64,6 +64,8 @@ import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.google.android.play.core.crossdeviceprompt.CrossDevicePromptManagerFactory
+import com.google.android.play.core.crossdeviceprompt.model.CrossDevicePromptInstallationRequest
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.ktx.AppUpdateResult.Available
 import com.google.android.play.core.ktx.AppUpdateResult.Downloaded
@@ -278,6 +280,8 @@ internal fun MainScreen(
         },
         onClearUpdate = viewModel::clearInAppUpdate,
     )
+
+    LaunchedInstallPrompt(state = state)
 
     MainScreenContent(
         modifier = modifier,
@@ -632,6 +636,37 @@ private fun LaunchedAppUpdate(
             }
             else -> {}
         }
+    }
+}
+
+@Composable
+private fun LaunchedInstallPrompt(state: MainState) {
+    val localActivity = LocalActivity.current
+
+    var hasPromptedInstall by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(state.welcome, state.installPrompt) {
+        if (!state.installPrompt || state.welcome.isActive || hasPromptedInstall) {
+            return@LaunchedEffect
+        }
+
+        val activity = localActivity ?: return@LaunchedEffect
+        hasPromptedInstall = true
+
+        val manager = when {
+            BuildConfig.DEBUG -> CrossDevicePromptManagerFactory.createFake(activity)
+            else -> CrossDevicePromptManagerFactory.create(activity)
+        }
+
+        manager
+            .requestInstallationPromptFlow(CrossDevicePromptInstallationRequest.create())
+            .addOnSuccessListener { info ->
+                manager.launchPromptFlow(activity, info)
+                Timber.d("Cross-device install prompt launched")
+            }
+            .addOnFailureListener { error ->
+                Timber.d("Cross-device install prompt not shown: %s", error.message)
+            }
     }
 }
 
