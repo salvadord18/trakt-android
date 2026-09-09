@@ -15,9 +15,10 @@ internal class ChangeHistoryUseCase(
     suspend fun addToHistory(
         showId: TraktId,
         episodesPlays: Int,
+        episodesPlaysWithoutSpecials: Int,
         episodesAiredCount: Int,
         customDate: DateSelectionResult? = null,
-    ): Int {
+    ): WatchedShow {
         val watchedAt = customDate?.dateString
             ?: nowUtcInstant().toString()
 
@@ -26,23 +27,24 @@ internal class ChangeHistoryUseCase(
             watchedAt = watchedAt,
         )
 
+        val timestamp = nowUtc()
+        val watched = WatchedShow(
+            showId = showId,
+            episodesPlays = episodesPlays + response.added.episodes,
+            episodesPlaysWithoutSpecials = episodesPlaysWithoutSpecials + response.added.episodes,
+            episodesAired = episodesAiredCount,
+            lastWatchedAt = timestamp,
+        )
+
         with(syncLocalSource) {
-            val timestamp = nowUtc()
             saveWatched(
-                shows = listOf(
-                    WatchedShow(
-                        showId = showId,
-                        episodesPlays = episodesPlays + response.added.episodes,
-                        episodesAired = episodesAiredCount,
-                        lastWatchedAt = timestamp,
-                    ),
-                ),
+                shows = listOf(watched),
                 timestamp = timestamp,
             )
             removeWatchlist(setOf(showId), timestamp)
         }
 
-        return episodesPlays + response.added.episodes
+        return watched
     }
 
     suspend fun removeFromHistory(showId: TraktId) {

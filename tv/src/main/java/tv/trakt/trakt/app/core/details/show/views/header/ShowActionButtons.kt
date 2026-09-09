@@ -161,9 +161,20 @@ private fun MarkAsWatchedButton(
 
     Box(modifier = modifier.fillMaxWidth()) {
         PrimaryButton(
-            text = stringResource(
-                if (isWatched) R.string.tag_text_watched else R.string.button_text_mark_as_watched,
-            ),
+            text = when {
+                collectionState.isStarted -> {
+                    stringResource(R.string.tag_text_started)
+                }
+                collectionState.fullWatchesCount > 1 -> {
+                    "${stringResource(R.string.tag_text_watched)} • ${collectionState.fullWatchesCount}"
+                }
+                isWatched -> {
+                    stringResource(R.string.tag_text_watched)
+                }
+                else -> {
+                    stringResource(R.string.button_text_mark_as_watched)
+                }
+            },
             icon = painterResource(
                 if (isAllWatched) R.drawable.ic_check_double else R.drawable.ic_check_2,
             ),

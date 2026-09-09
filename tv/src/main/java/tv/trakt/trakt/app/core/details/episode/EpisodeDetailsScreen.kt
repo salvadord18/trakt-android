@@ -7,9 +7,10 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Arrangement.Absolute.spacedBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +54,6 @@ import androidx.tv.material3.Text
 import com.google.android.play.core.review.ReviewManagerFactory
 import com.google.android.play.core.review.testing.FakeReviewManager
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.delay
 import timber.log.Timber
 import tv.trakt.trakt.app.BuildConfig
 import tv.trakt.trakt.app.LocalDrawerVisibility
@@ -68,6 +69,7 @@ import tv.trakt.trakt.app.core.details.episode.views.content.EpisodeSeasonEpisod
 import tv.trakt.trakt.app.core.details.episode.views.header.EpisodeActionButtons
 import tv.trakt.trakt.app.core.details.episode.views.header.EpisodeHeader
 import tv.trakt.trakt.app.core.details.ui.BackdropImage
+import tv.trakt.trakt.app.core.details.ui.NoOpBringIntoViewSpec
 import tv.trakt.trakt.app.core.people.navigation.PersonDestination
 import tv.trakt.trakt.app.ui.theme.TraktTheme
 import tv.trakt.trakt.common.helpers.extensions.EmptyImmutableList
@@ -83,7 +85,6 @@ import tv.trakt.trakt.common.model.TraktId
 import tv.trakt.trakt.common.ui.theme.colors.Red400
 import tv.trakt.trakt.resources.R
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.milliseconds
 
 private val sections = listOf(
     "poster",
@@ -189,6 +190,7 @@ internal fun EpisodeDetailsScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EpisodeDetailsScreenContent(
     state: EpisodeDetailsState,
@@ -205,6 +207,7 @@ private fun EpisodeDetailsScreenContent(
     val drawerVisibility = LocalDrawerVisibility.current
 
     var focusedSection by rememberSaveable { mutableStateOf<String?>(null) }
+    var initialFocusDone by rememberSaveable { mutableStateOf(false) }
     val focusRequesters = remember {
         sections.associateBy(
             keySelector = { it },
@@ -241,7 +244,11 @@ private fun EpisodeDetailsScreenContent(
             .background(TraktTheme.colors.backgroundPrimary)
             .focusProperties {
                 onEnter = {
-                    focusRequesters[focusedSection]?.requestFocus()
+                    if (state.showDetails != null && state.episodeDetails != null) {
+                        val target = focusedSection
+                            ?: if (state.user != null) "buttons" else "poster"
+                        focusRequesters[target]?.requestFocus()
+                    }
                 }
             },
     ) {
@@ -263,63 +270,82 @@ private fun EpisodeDetailsScreenContent(
         )
 
         if (state.showDetails != null && state.episodeDetails != null) {
-            Column(
-                verticalArrangement = spacedBy(24.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState)
-                    .padding(bottom = TraktTheme.spacing.mainContentVerticalSpace)
-                    .alpha(if (contentActive) 1F else 0F),
-            ) {
-                EpisodeHeader(
-                    show = state.showDetails,
-                    episode = state.episodeDetails,
-                    episodePlays = state.episodeHistory.episodesPlays,
-                    episodeTranslation = state.episodeTranslation,
-                    externalRating = state.episodeRatings,
-                    focusRequester = focusRequesters.getValue("poster"),
-                    onFocused = { focusedSection = it },
-                    onBackdropFocused = { contentActive = !contentActive },
-                    onPosterUnfocused = { contentActive = true },
-                )
-                MainContent(
-                    state = state,
-                    onFocused = { focusedSection = it },
-                    onShowClicked = { onNavigateToShow(it.ids.trakt) },
-                    onEpisodeClicked = {
-                        // Break if user taps the current episode
-                        if (state.episodeDetails.ids.trakt != it.ids.trakt) {
-                            onNavigateToEpisode(
-                                state.showDetails.ids.trakt,
-                                it,
-                            )
-                        } else {
-                            focusRequesters["poster"]?.requestFocus()
-                        }
-                    },
-                    onPersonClicked = {
-                        onNavigateToPerson(
-                            PersonDestination(
-                                personId = it.ids.trakt.value,
-                                sourceId = state.showDetails.ids.trakt.value,
-                                backdropUrl = state.showDetails.images?.getFanartUrl(Images.Size.FULL),
+            // Suppress focus-driven scroll until the initial focus has landed,
+            // so the screen stays at the top when the buttons row gets focused.
+            val bringIntoViewSpec = when {
+                initialFocusDone -> LocalBringIntoViewSpec.current
+                else -> NoOpBringIntoViewSpec
+            }
+
+            CompositionLocalProvider(LocalBringIntoViewSpec provides bringIntoViewSpec) {
+                Column(
+                    verticalArrangement = spacedBy(24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(scrollState)
+                        .padding(bottom = TraktTheme.spacing.mainContentVerticalSpace)
+                        .alpha(if (contentActive) 1F else 0F),
+                ) {
+                    EpisodeHeader(
+                        show = state.showDetails,
+                        episode = state.episodeDetails,
+                        episodePlays = state.episodeHistory.episodesPlays,
+                        episodeTranslation = state.episodeTranslation,
+                        externalRating = state.episodeRatings,
+                        focusRequester = focusRequesters.getValue("poster"),
+                        onFocused = {
+                            focusedSection = it
+                            initialFocusDone = true
+                        },
+                        onBackdropFocused = { contentActive = !contentActive },
+                        onPosterUnfocused = { contentActive = true },
+                        modifier = Modifier
+                            .padding(
+                                start = TraktTheme.spacing.mainContentStartSpace,
+                                top = TraktTheme.spacing.mainContentVerticalSpace,
                             ),
-                        )
-                    },
-                    onCommentClicked = { selectedComment = it },
-                    onAddHistoryClick = onAddHistoryClick,
-                    onRemoveHistoryClick = onRemoveHistoryClick,
-                    onRemoveAllHistoryClick = onRemoveAllHistoryClick,
-                    onStreamingsClick = {
-                        onNavigateToStreamings(
-                            state.showDetails.ids.trakt,
-                            state.episodeDetails,
-                        )
-                    },
-                    onDropEpisodeClick = onDropEpisodeClick,
-                    focusRequesters = focusRequesters,
-                    scrollState = scrollState,
-                )
+                    )
+                    MainContent(
+                        state = state,
+                        onFocused = {
+                            focusedSection = it
+                            initialFocusDone = true
+                        },
+                        onShowClicked = { onNavigateToShow(it.ids.trakt) },
+                        onEpisodeClicked = {
+                            // Break if user taps the current episode
+                            if (state.episodeDetails.ids.trakt != it.ids.trakt) {
+                                onNavigateToEpisode(
+                                    state.showDetails.ids.trakt,
+                                    it,
+                                )
+                            } else {
+                                focusRequesters["poster"]?.requestFocus()
+                            }
+                        },
+                        onPersonClicked = {
+                            onNavigateToPerson(
+                                PersonDestination(
+                                    personId = it.ids.trakt.value,
+                                    sourceId = state.showDetails.ids.trakt.value,
+                                    backdropUrl = state.showDetails.images?.getFanartUrl(Images.Size.FULL),
+                                ),
+                            )
+                        },
+                        onCommentClicked = { selectedComment = it },
+                        onAddHistoryClick = onAddHistoryClick,
+                        onRemoveHistoryClick = onRemoveHistoryClick,
+                        onRemoveAllHistoryClick = onRemoveAllHistoryClick,
+                        onStreamingsClick = {
+                            onNavigateToStreamings(
+                                state.showDetails.ids.trakt,
+                                state.episodeDetails,
+                            )
+                        },
+                        onDropEpisodeClick = onDropEpisodeClick,
+                        focusRequesters = focusRequesters,
+                    )
+                }
             }
         }
 
@@ -347,10 +373,7 @@ private fun MainContent(
     onRemoveAllHistoryClick: () -> Unit,
     onDropEpisodeClick: () -> Unit,
     focusRequesters: Map<String, FocusRequester>,
-    scrollState: ScrollState,
 ) {
-    var initialFocused by rememberSaveable { mutableStateOf(false) }
-
     Column(
         horizontalAlignment = Alignment.Start,
         modifier = Modifier.fillMaxWidth(),
@@ -366,15 +389,6 @@ private fun MainContent(
         ) {
             val posterWidth = TraktTheme.size.detailsPosterSize * 0.666F
             if (state.user != null) {
-                LaunchedEffect(Unit) {
-                    if (initialFocused) return@LaunchedEffect
-                    initialFocused = true
-
-                    focusRequesters["buttons"]?.requestFocus()
-                    delay(50.milliseconds)
-                    scrollState.scrollTo(0)
-                }
-
                 EpisodeActionButtons(
                     detailsState = state,
                     onHistoryClick = onAddHistoryClick,

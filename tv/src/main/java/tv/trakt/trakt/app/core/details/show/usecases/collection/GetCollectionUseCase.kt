@@ -47,6 +47,10 @@ internal class GetCollectionUseCase(
                         episodesPlays = seasons
                             .flatMap { it.episodes }
                             .sumOf { it.plays },
+                        episodesPlaysWithoutSpecials = seasons
+                            .filter { it.number != 0 }
+                            .flatMap { it.episodes }
+                            .sumOf { it.plays },
                         episodesAired = show.airedEpisodes,
                         lastWatchedAt = seasons
                             .flatMap { it.episodes }

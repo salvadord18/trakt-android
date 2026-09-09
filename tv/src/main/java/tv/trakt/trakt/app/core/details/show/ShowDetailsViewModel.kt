@@ -424,6 +424,7 @@ internal class ShowDetailsViewModel(
                             isWatchlist = watchlist != null,
                             isWatched = watched != null,
                             episodesPlays = watched?.episodesPlays ?: 0,
+                            episodesPlaysWithoutSpecials = watched?.episodesPlaysWithoutSpecials ?: 0,
                             episodesAiredCount = watched?.episodesAired ?: 0,
                         )
                     }
@@ -446,9 +447,10 @@ internal class ShowDetailsViewModel(
             try {
                 showCollectionState.update { it.copy(isWatchedLoading = true) }
 
-                val episodesPlays = historyUseCase.addToHistory(
+                val watched = historyUseCase.addToHistory(
                     showId = show.showId.toTraktId(),
                     episodesPlays = showCollectionState.value.episodesPlays,
+                    episodesPlaysWithoutSpecials = showCollectionState.value.episodesPlaysWithoutSpecials,
                     episodesAiredCount = showCollectionState.value.episodesAiredCount,
                     customDate = customDate,
                 )
@@ -461,7 +463,8 @@ internal class ShowDetailsViewModel(
                         isWatchlist = false,
                         isWatched = true,
                         isWatchedLoading = false,
-                        episodesPlays = episodesPlays,
+                        episodesPlays = watched.episodesPlays,
+                        episodesPlaysWithoutSpecials = watched.episodesPlaysWithoutSpecials,
                         episodesAiredCount = it.episodesAiredCount,
                     )
                 }

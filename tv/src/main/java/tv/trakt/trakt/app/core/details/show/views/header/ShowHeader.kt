@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement.Absolute.spacedBy
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +40,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
@@ -48,14 +50,17 @@ import kotlinx.coroutines.launch
 import tv.trakt.trakt.app.common.ui.chips.InfoChip
 import tv.trakt.trakt.app.core.details.show.ShowDetailsState.CollectionState
 import tv.trakt.trakt.app.core.details.ui.ExternalRatingsStrip
+import tv.trakt.trakt.app.core.details.ui.PosterChip
 import tv.trakt.trakt.app.core.details.ui.PosterImage
 import tv.trakt.trakt.app.ui.theme.TraktTheme
 import tv.trakt.trakt.common.core.translations.model.MediaTranslation
 import tv.trakt.trakt.common.helpers.extensions.capitalize
 import tv.trakt.trakt.common.helpers.extensions.longDateFormat
 import tv.trakt.trakt.common.helpers.extensions.onClick
+import tv.trakt.trakt.common.helpers.extensions.rememberDurationFormat
 import tv.trakt.trakt.common.helpers.extensions.rememberThousandsFormat
 import tv.trakt.trakt.common.helpers.extensions.toLocal
+import tv.trakt.trakt.common.helpers.preview.PreviewData
 import tv.trakt.trakt.common.model.ExternalRating
 import tv.trakt.trakt.common.model.Images.Size.MEDIUM
 import tv.trakt.trakt.common.model.Show
@@ -81,42 +86,66 @@ internal fun ShowHeader(
         horizontalArrangement = spacedBy(24.dp, Alignment.Start),
         verticalAlignment = Alignment.Bottom,
         modifier = modifier
-            .padding(
-                start = TraktTheme.spacing.mainContentStartSpace,
-                top = TraktTheme.spacing.mainContentVerticalSpace,
-            )
             .fillMaxWidth()
             .height(TraktTheme.size.detailsPosterSize),
     ) {
-        PosterImage(
-            posterUrl = show.images?.getPosterUrl(size = MEDIUM),
-            modifier = Modifier
-                .onKeyEvent {
-                    if (!isPosterFocused) {
+        Box {
+            PosterImage(
+                posterUrl = show.images?.getPosterUrl(size = MEDIUM),
+                modifier = Modifier
+                    .onKeyEvent {
+                        if (!isPosterFocused) {
+                            return@onKeyEvent false
+                        }
+                        if (it.type == KeyEventType.KeyUp && it.key == Key.DirectionUp) {
+                            onBackdropFocused()
+                            return@onKeyEvent true
+                        }
                         return@onKeyEvent false
                     }
-                    if (it.type == KeyEventType.KeyUp && it.key == Key.DirectionUp) {
-                        onBackdropFocused()
-                        return@onKeyEvent true
+                    .onFocusChanged {
+                        if (it.isFocused) {
+                            onFocused("poster")
+                        } else {
+                            onPosterUnfocused()
+                        }
+                        scope.launch {
+                            delay(100)
+                            isPosterFocused = it.isFocused
+                        }
                     }
-                    return@onKeyEvent false
-                }
-                .onFocusChanged {
-                    if (it.isFocused) {
-                        onFocused("poster")
-                    } else {
+                    .focusRequester(focusRequester)
+                    .onClick {
                         onPosterUnfocused()
-                    }
-                    scope.launch {
-                        delay(100)
-                        isPosterFocused = it.isFocused
-                    }
-                }
-                .focusRequester(focusRequester)
-                .onClick {
-                    onPosterUnfocused()
-                },
-        )
+                    },
+            )
+
+            this@Row.AnimatedVisibility(
+                visible = showCollection.episodesPlaysWithoutSpecials > 0,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .graphicsLayer {
+                        translationY = 8.5.dp.toPx()
+                    },
+            ) {
+                PosterChip(
+                    text = when {
+                        showCollection.isStarted -> {
+                            stringResource(R.string.tag_text_started)
+                        }
+                        showCollection.fullWatchesCount > 1 -> {
+                            "${stringResource(R.string.tag_text_watched)} • ${showCollection.fullWatchesCount}"
+                        }
+                        else -> {
+                            stringResource(R.string.tag_text_watched)
+                        }
+                    },
+                    icon = painterResource(R.drawable.ic_check_double),
+                )
+            }
+        }
 
         Column {
             Crossfade(
@@ -134,154 +163,149 @@ internal fun ShowHeader(
             }
 
             Row(
-                horizontalArrangement = spacedBy(16.dp),
+                horizontalArrangement = spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .horizontalScroll(rememberScrollState()),
             ) {
-                // Release date
                 show.releasedAt?.let { releasedAt ->
-                    Row(
-                        horizontalArrangement = spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_calendar),
-                            contentDescription = "Genres",
-                            tint = TraktTheme.colors.textSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            text = releasedAt.toLocal().format(longDateFormat()).capitalize(),
-                            color = TraktTheme.colors.textSecondary,
-                            style = TraktTheme.typography.heading6,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    InfoChip(
+                        text = releasedAt.toLocal().format(longDateFormat()).capitalize(),
+                        iconPainter = painterResource(R.drawable.ic_calendar),
+                    )
                 }
 
-                // Genres
-                Row(
-                    horizontalArrangement = spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_clapper),
-                        contentDescription = "Genres",
-                        tint = TraktTheme.colors.textSecondary,
-                        modifier = Modifier.size(14.dp),
+                show.runtime?.let { runtime ->
+                    InfoChip(
+                        text = rememberDurationFormat(runtime.inWholeMinutes),
                     )
-                    Text(
+                }
+
+                show.certification?.let { certification ->
+                    InfoChip(text = certification)
+                }
+
+                if (show.genres.isNotEmpty()) {
+                    InfoChip(
                         text = show.genres.take(2)
                             .map { stringResource(it.displayStringRes) }
                             .joinToString(" / "),
-                        color = TraktTheme.colors.textSecondary,
-                        style = TraktTheme.typography.heading6,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
-            Column(
-                verticalArrangement = spacedBy(8.dp),
-                modifier = Modifier.padding(top = 24.dp),
+            // Ratings
+            Row(
+                horizontalArrangement = spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .horizontalScroll(rememberScrollState()),
             ) {
-                // Ratings
+                val hidden = !show.rememberReleased()
                 Row(
-                    horizontalArrangement = spacedBy(16.dp),
+                    horizontalArrangement = spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
                 ) {
-                    val hidden = !show.rememberReleased()
-                    Row(
-                        horizontalArrangement = spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val grayFilter = remember {
-                            ColorFilter.colorMatrix(
-                                ColorMatrix().apply {
-                                    setToSaturation(0F)
-                                },
-                            )
-                        }
-                        val redFilter = remember {
-                            ColorFilter.tint(Purple400)
-                        }
-
-                        Image(
-                            painter = painterResource(R.drawable.ic_star),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .graphicsLayer {
-                                    translationY = -0.5.dp.toPx()
-                                },
-                            colorFilter = if (show.rating.rating > 0 && !hidden) redFilter else grayFilter,
+                    val grayFilter = remember {
+                        ColorFilter.colorMatrix(
+                            ColorMatrix().apply {
+                                setToSaturation(0F)
+                            },
                         )
-                        Text(
-                            text = if (show.rating.rating > 0 && !hidden) "${show.rating.ratingPercent}%" else "-",
-                            color = TraktTheme.colors.textPrimary,
-                            style = TraktTheme.typography.ratingLabel,
-                        )
-
-                        if (show.rating.rating > 0 && !hidden) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.align(Alignment.Top),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Person,
-                                    contentDescription = null,
-                                    tint = TraktTheme.colors.textSecondary,
-                                    modifier = Modifier.size(12.5.dp),
-                                )
-                                Text(
-                                    text = rememberThousandsFormat(show.rating.votes),
-                                    color = TraktTheme.colors.textSecondary,
-                                    style = TraktTheme.typography.ratingLabel.copy(fontSize = 12.sp),
-                                )
-                            }
-                        }
+                    }
+                    val redFilter = remember {
+                        ColorFilter.tint(Purple400)
                     }
 
-                    AnimatedVisibility(
-                        visible = externalRating != null,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
-                    ) {
-                        ExternalRatingsStrip(
-                            externalRating = externalRating,
-                            hidden = hidden,
-                        )
+                    Image(
+                        painter = painterResource(R.drawable.ic_star),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .graphicsLayer {
+                                translationY = -0.5.dp.toPx()
+                            },
+                        colorFilter = if (show.rating.rating > 0 && !hidden) redFilter else grayFilter,
+                    )
+                    Text(
+                        text = if (show.rating.rating > 0 && !hidden) "${show.rating.ratingPercent}%" else "-",
+                        color = TraktTheme.colors.textPrimary,
+                        style = TraktTheme.typography.ratingLabel,
+                    )
+
+                    if (show.rating.rating > 0 && !hidden) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.align(Alignment.Top),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Person,
+                                contentDescription = null,
+                                tint = TraktTheme.colors.textSecondary,
+                                modifier = Modifier.size(12.5.dp),
+                            )
+                            Text(
+                                text = rememberThousandsFormat(show.rating.votes),
+                                color = TraktTheme.colors.textSecondary,
+                                style = TraktTheme.typography.ratingLabel.copy(fontSize = 12.sp),
+                            )
+                        }
                     }
                 }
 
-                // Info chips
-                if (show.certification != null || show.releasedAt != null) {
-                    Row(
-                        horizontalArrangement = spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (showCollection.episodesPlays > 0) {
-                            val episodes = remember(showCollection.episodesPlays) {
-                                showCollection.episodesPlays
-                            }
-                            val watchCountText = stringResource(R.string.tag_text_watch_count)
-                            InfoChip(
-                                text = "$watchCountText: $episodes".uppercase(),
-                                containerColor = TraktTheme.colors.accent,
-                            )
-                        }
-                        show.certification?.let {
-                            InfoChip(text = it)
-                        }
-                        show.releasedAt?.let {
-                            InfoChip(text = it.toLocal().year.toString())
-                        }
-                    }
+                AnimatedVisibility(
+                    visible = externalRating != null,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                ) {
+                    ExternalRatingsStrip(
+                        externalRating = externalRating,
+                        hidden = hidden,
+                    )
                 }
             }
         }
+    }
+}
+
+@Preview(
+    device = "id:tv_4k",
+    showBackground = true,
+    backgroundColor = 0xFF131517,
+)
+@Composable
+private fun Preview() {
+    TraktTheme {
+        ShowHeader(
+            show = PreviewData.show1,
+            showCollection = CollectionState(
+                episodesPlays = 12,
+                episodesPlaysWithoutSpecials = 12,
+                episodesAiredCount = 6,
+            ),
+            showTranslation = null,
+            externalRating = ExternalRating(
+                trakt = null,
+                imdb = ExternalRating.ImdbRating(
+                    rating = 7.9F,
+                    votes = 1_267_356,
+                    link = "https://www.imdb.com/title/tt1234567/",
+                ),
+                meta = ExternalRating.MetaRating(
+                    rating = 85,
+                    link = "https://www.metacritic.com/movie/some-movie",
+                ),
+                rotten = null,
+                tmdb = null,
+                mal = null,
+                letterboxd = null,
+            ),
+            focusRequester = FocusRequester(),
+            onFocused = {},
+            onPosterUnfocused = {},
+            onBackdropFocused = {},
+        )
     }
 }

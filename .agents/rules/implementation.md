@@ -7,6 +7,16 @@ applyTo: '**/*.kt'
 
 # Implementation Guidelines
 
+- Never use em-dashes. Use "-".
+
+## Code Comments
+
+- Avoid comments that explain "what" code does - prefer self-documenting names. Use comments to
+  explain "why" or "how" when non-obvious.
+- Comments amount should be minimal
+- Comments should be in English, clear, concise, and grammatically correct. Avoid slang, idioms, or
+  jokes.
+
 ## Before Writing Code
 
 - **Search existing patterns first.** Codebase has feature folders, Koin modules, `TraktTheme` tokens — find working example before inventing.

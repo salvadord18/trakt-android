@@ -49,12 +49,27 @@ internal data class ShowDetailsState(
         val isWatched: Boolean = false,
         val isWatchlist: Boolean = false,
         val episodesPlays: Int = 0,
+        val episodesPlaysWithoutSpecials: Int = 0,
         val episodesAiredCount: Int = 0,
     ) {
         val isLoading: Boolean
             get() = isWatchedLoading || isWatchlistLoading
 
         val isAllWatched: Boolean
-            get() = episodesPlays > 0 && episodesPlays >= episodesAiredCount
+            get() = episodesPlaysWithoutSpecials > 0 &&
+                episodesPlaysWithoutSpecials >= episodesAiredCount
+
+        val isStarted: Boolean
+            get() = episodesPlaysWithoutSpecials > 0 &&
+                episodesPlaysWithoutSpecials < episodesAiredCount
+
+        val fullWatchesCount: Int
+            get() = when {
+                episodesAiredCount > 0 -> episodesPlaysWithoutSpecials / episodesAiredCount
+                else -> 0
+            }
+
+        val unwatchedCount: Int
+            get() = episodesAiredCount - episodesPlaysWithoutSpecials
     }
 }

@@ -9,25 +9,10 @@ import java.time.ZonedDateTime
 internal data class WatchedShow(
     val showId: TraktId,
     val episodesPlays: Int,
+    val episodesPlaysWithoutSpecials: Int,
     val episodesAired: Int,
     val lastWatchedAt: ZonedDateTime,
 ) {
-//    val plays: Int
-//        get() = seasons
-//            .flatMap { it.episodes }
-//            .sumOf { it.plays }
-//
-//    val playsDistinct: Int
-//        get() = seasons
-//            .flatMap { it.episodes }
-//            .sumOf { it.playsDistinct }
-//
-//    val lastWatchedAt: Instant
-//        get() = seasons
-//            .flatMap { it.episodes }
-//            .maxBy { it.lastWatchedAt }
-//            .lastWatchedAt
-
     data class Season(
         val id: TraktId,
         val number: Int,
