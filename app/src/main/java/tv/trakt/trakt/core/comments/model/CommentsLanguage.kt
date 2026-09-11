@@ -17,7 +17,7 @@ import java.util.Locale
  * is supported. For example, `pt-BR` uses Brazil and `es-MX` uses Mexico when
  * those variants are available.
  */
-private val DefaultFlagCountries = mapOf(
+private val defaultFlagCountries = mapOf(
     "en" to "GB",
     "es" to "ES",
     "fr" to "FR",
@@ -132,7 +132,7 @@ private fun Locale.flagCountry(
         return appLocale.country
     }
 
-    return DefaultFlagCountries[apiLanguage]
+    return defaultFlagCountries[apiLanguage]
         ?: country.ifBlank {
             ULocale.addLikelySubtags(ULocale.forLocale(this)).country
         }
