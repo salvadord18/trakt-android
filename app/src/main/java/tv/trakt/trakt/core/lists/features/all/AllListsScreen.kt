@@ -2,10 +2,6 @@
 
 package tv.trakt.trakt.core.lists.features.all
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -61,9 +57,9 @@ import tv.trakt.trakt.core.lists.sections.personal.model.PersonalListType
 import tv.trakt.trakt.core.lists.sections.personal.model.PersonalListType.Collaborations
 import tv.trakt.trakt.core.lists.sections.personal.model.PersonalListType.Liked
 import tv.trakt.trakt.core.lists.sections.personal.model.PersonalListType.Personal
-import tv.trakt.trakt.core.lists.sections.personal.model.PersonalListType.Smart
 import tv.trakt.trakt.core.lists.sections.personal.ui.ListsFilters
 import tv.trakt.trakt.core.lists.sheets.CreateListSheet
+import tv.trakt.trakt.core.lists.sheets.CreateListTypeSheet
 import tv.trakt.trakt.core.lists.sheets.EditListSheet
 import tv.trakt.trakt.helpers.SimpleScrollConnection
 import tv.trakt.trakt.resources.R
@@ -88,6 +84,7 @@ internal fun AllListsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    var createListTypeSheet by remember { mutableStateOf(false) }
     var createListSheet by remember { mutableStateOf(false) }
     var editListSheet by remember { mutableStateOf<CustomList?>(null) }
     var smartListToDelete by remember { mutableStateOf<SmartList?>(null) }
@@ -111,13 +108,19 @@ internal fun AllListsScreen(
         onListClick = onNavigateList,
         onListPersonalClick = onNavigatePersonalList,
         onSmartListClick = onNavigateSmartList,
-        onSmartListCreateClick = onNavigateCreateSmartList,
-        onListCreateClick = { createListSheet = true },
+        onCreateClick = { createListTypeSheet = true },
         onListEditClick = { editListSheet = it },
         onSmartListDeleteClick = { smartListToDelete = it },
         onFilterClick = viewModel::setFilter,
         onEndOfList = viewModel::loadMoreData,
         onBackClick = onNavigateBack,
+    )
+
+    CreateListTypeSheet(
+        active = createListTypeSheet,
+        onCreateList = { createListSheet = true },
+        onCreateSmartList = onNavigateCreateSmartList,
+        onDismiss = { createListTypeSheet = false },
     )
 
     CreateListSheet(
@@ -156,8 +159,7 @@ private fun AllListsScreen(
     onListClick: (CustomList) -> Unit = {},
     onListPersonalClick: (CustomList) -> Unit = {},
     onSmartListClick: (SmartList) -> Unit = {},
-    onListCreateClick: () -> Unit = {},
-    onSmartListCreateClick: () -> Unit = {},
+    onCreateClick: () -> Unit = {},
     onListEditClick: (CustomList) -> Unit = {},
     onSmartListDeleteClick: (SmartList) -> Unit = {},
     onFilterClick: (PersonalListType) -> Unit = {},
@@ -224,18 +226,7 @@ private fun AllListsScreen(
         ) {
             item {
                 TitleBar(
-                    createListVisible = state.filter == Personal || state.filter == Smart,
-                    onCreateListClick = when (state.filter) {
-                        Personal -> {
-                            onListCreateClick
-                        }
-                        Smart -> {
-                            onSmartListCreateClick
-                        }
-                        else -> {
-                            {}
-                        }
-                    },
+                    onCreateClick = onCreateClick,
                     modifier = Modifier
                         .padding(contentHorizontalPadding)
                         .onClick(onClick = onBackClick)
@@ -367,8 +358,7 @@ private fun AllListsScreen(
 
 @Composable
 private fun TitleBar(
-    createListVisible: Boolean,
-    onCreateListClick: () -> Unit,
+    onCreateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -395,24 +385,17 @@ private fun TitleBar(
             )
         }
 
-        AnimatedVisibility(
-            visible = createListVisible,
-            enter = fadeIn(tween(150)),
-            exit = fadeOut(tween(150)),
+        Icon(
+            painter = painterResource(R.drawable.ic_plus),
+            contentDescription = null,
+            tint = TraktTheme.colors.textPrimary,
             modifier = Modifier
                 .graphicsLayer {
                     translationX = 1.dp.toPx()
                 }
                 .size(22.dp)
-                .onClick(onClick = onCreateListClick),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_plus),
-                contentDescription = null,
-                tint = TraktTheme.colors.textPrimary,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+                .onClick(onClick = onCreateClick),
+        )
     }
 }
 
