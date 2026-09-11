@@ -535,7 +535,8 @@ internal fun ShowDetailsContent(
         state.show?.let { show ->
             val isReleased = show.rememberReleased()
             val isWatched = remember(state.showProgress) {
-                state.showProgress?.isWatched == true
+                state.showProgress?.isWatched == true ||
+                    state.showProgress?.isWatching == true
             }
 
             DetailsBackground(
