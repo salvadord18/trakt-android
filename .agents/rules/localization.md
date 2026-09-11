@@ -17,6 +17,17 @@ applyTo: '{resources/src/main/res/**,**/ui/**/*.kt,**/strings.xml}'
 - `buildSrc/.../ValidateStringPlaceholdersTask` validates placeholder
   parity across locales — run before merging strings PRs.
 
+## New strings (agents)
+
+- **Never add new keys directly to `values/strings.xml`.** Place every newly
+  created key in `resources/src/main/res/values/strings-todo.xml` instead.
+  A human reviews, finalises wording, and moves keys into `strings.xml`
+  before the Crowdin sync picks them up.
+- Reuse an existing `strings.xml` key when one fits; `strings-todo.xml` is
+  only for keys that do not exist yet.
+- Keys in `strings-todo.xml` follow the same namespacing and formatting
+  rules as `strings.xml`.
+
 ## Reading strings in Compose
 
 Use `stringResource` / `pluralStringResource` from
@@ -80,6 +91,8 @@ Never `if (count == 1) "1 episode" else "${count} episodes"` — breaks every no
 ## Don'ts
 
 - Don't hand-edit any `values-<locale>/strings.xml`. Crowdin owns them.
+- Don't add new keys straight to `values/strings.xml` — new keys go to
+  `values/strings-todo.xml` (see "New strings (agents)").
 - Don't introduce keys without namespace prefix.
 - Don't use `String.format` with positional args (`%s %s`) when keys could clash on translator interpretation — use named placeholders via `<xliff:g>` tags.
 - Don't concatenate user-facing strings with `+`. Use formatted templates.
